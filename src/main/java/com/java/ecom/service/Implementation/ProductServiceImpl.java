@@ -1,7 +1,10 @@
 package com.java.ecom.service.Implementation;
 
+import com.java.ecom.dto.request.ProductRequestDto;
+import com.java.ecom.dto.response.ProductResponseDto;
 import com.java.ecom.entity.Product;
 import com.java.ecom.exception.NotFoundException;
+import com.java.ecom.mapper.ProductMapper;
 import com.java.ecom.repository.ProductRepo;
 import com.java.ecom.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -13,33 +16,53 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
-
     private final ProductRepo productRepo;
-
+    private final ProductMapper productMapper;
 
     @Override
-    public List<Product> getAllProducts() {
-        return productRepo.findAll();
+    public List<ProductResponseDto> getAllProducts() {
+        return productRepo.findAll()
+                .stream()
+                .filter(Product::getIsActive)
+                .map(productMapper::toResponseDto)
+                .toList();
     }
 
     @Override
-    public Product addProduct(Product product) {
-        return productRepo.save(product);
+    public ProductResponseDto addProduct(ProductRequestDto dto) {
+
+        Product product = productMapper.toEntity(dto);
+
+        product.setIsActive(true);
+        product.setIsAvailable(dto.getStock() > 0);
+
+        Product saved = productRepo.save(product);
+        return productMapper.toResponseDto(saved);
     }
 
     @Override
-    public Product updateProduct(int id, Product product) {
-        Product existingProducts = productRepo.findById(id).orElseThrow(()-> new NotFoundException("Product not found for id: "+id));
-        existingProducts.setProdName(product.getProdName());
-        existingProducts.setCategory(product.getCategory());
-        existingProducts.setPrice(product.getPrice());
-        existingProducts.setIsAvailable(product.getIsAvailable());
-        return productRepo.save(existingProducts);
+    public ProductResponseDto updateProduct(Integer id, ProductRequestDto dto) {
+
+        Product product = productRepo.findById(id)
+                .orElseThrow(() ->
+                        new NotFoundException("Product not found for id: " + id));
+
+        productMapper.toUpdateEntityFromDto(dto, product);
+
+        // update availability based on stock
+        product.setIsAvailable(product.getStock() > 0);
+
+        return productMapper.toResponseDto(product);
     }
 
     @Override
-    public void deleteProduct(int id) {
-        Product existingProducts = productRepo.findById(id).orElseThrow(()-> new NotFoundException("Product not found for id: "+id));
-        productRepo.delete(existingProducts);
+    public void deleteProduct(Integer id) {
+
+        Product product = productRepo.findById(id)
+                .orElseThrow(() ->
+                        new NotFoundException("Product not found for id: " + id));
+
+        // SOFT DELETE
+        product.setIsActive(false);
     }
 }

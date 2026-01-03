@@ -1,10 +1,7 @@
 package com.java.ecom.entity;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,7 +18,11 @@ public class Product {
     private String prodName;
     private double price;
     private String category;
-    private double quantity;
-    private Boolean isAvailable;
+    private Integer stock;
+    @Column(nullable = false)
+    private Boolean isAvailable = true;
+    @Column(nullable = false)
+    private Boolean isActive = true;
+
 
 }
