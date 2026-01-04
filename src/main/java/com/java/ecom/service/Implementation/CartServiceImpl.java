@@ -116,6 +116,32 @@ public class CartServiceImpl implements CartService {
         return mapToResponse(savedCart);
     }
 
+    @Override
+    @Transactional
+    public CartResponseDto removeCartItem(Integer userId, Long cartItemId) {
+
+        // 1️ Fetch cart
+        Cart cart = cartRepo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+
+        // 2️ Find cart item
+        CartItem item = cart.getItems().stream()
+                .filter(i -> i.getId().equals(cartItemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+
+        // 3️ Remove item
+        cart.getItems().remove(item); // orphanRemoval = true
+
+        // 4️ Recalculate total
+        recalculateCartTotal(cart);
+
+        // 5️ Save & return
+        Cart savedCart = cartRepo.save(cart);
+        return mapToResponse(savedCart);
+    }
+
+
     private Cart createNewCart(Integer userId) {
         Cart cart = new Cart();
         cart.setUserId(userId);

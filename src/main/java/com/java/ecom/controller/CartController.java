@@ -6,7 +6,6 @@ import com.java.ecom.dto.request.UpdateCartItemRequestDto;
 import com.java.ecom.dto.response.CartResponseDto;
 import com.java.ecom.service.CartService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,5 +37,17 @@ public class CartController {
                 cartService.updateCartItemQty(userId, itemId, dto)
         );
     }
+
+    //delete cart item
+    @DeleteMapping("/{userId}/item/{itemId}")
+    public ResponseEntity<CartResponseDto> removeCartItem(
+            @PathVariable Integer userId,
+            @PathVariable Long itemId) {
+
+        return ResponseEntity.ok(
+                cartService.removeCartItem(userId, itemId)
+        );
+    }
+
 
 }
