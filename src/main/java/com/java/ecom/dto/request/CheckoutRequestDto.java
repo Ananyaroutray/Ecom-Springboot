@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class CheckoutRequestDto {
-    private Integer addressId; // user’s selected address
+    private Long addressId; // user’s selected address
 }

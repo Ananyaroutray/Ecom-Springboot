@@ -7,10 +7,7 @@ import com.java.ecom.entity.*;
 import com.java.ecom.enums.OrderStatus;
 import com.java.ecom.exception.BadRequestException;
 import com.java.ecom.exception.NotFoundException;
-import com.java.ecom.repository.CartRepo;
-import com.java.ecom.repository.OrderRepo;
-import com.java.ecom.repository.ProductRepo;
-import com.java.ecom.repository.UserRepo;
+import com.java.ecom.repository.*;
 import com.java.ecom.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +25,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepo orderRepo;
     private final ProductRepo productRepo;
     private final UserRepo userRepo;
+    private final AddressRepo addressRepo;
 
     @Override
     @Transactional
@@ -45,9 +43,8 @@ public class OrderServiceImpl implements OrderService {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Address address = user.getAddress().stream()
-                .filter(a -> a.getId().equals(dto.getAddressId()))
-                .findFirst()
+        Address address = addressRepo
+                .findByIdAndUser_Id(dto.getAddressId(), userId)
                 .orElseThrow(() -> new NotFoundException("Address not found"));
 
         // 3️ Create Order
