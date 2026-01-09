@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +30,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponseDto checkout(Integer userId, CheckoutRequestDto dto) {
+    public OrderResponseDto checkout(UUID userId, CheckoutRequestDto dto) {
 
         // 1️ Fetch cart
         Cart cart = cartRepo.findByUserId(userId)

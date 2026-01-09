@@ -1,6 +1,7 @@
 package com.java.ecom.exception;
 
 import com.java.ecom.exception.dto.ErrorDetails;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -29,5 +30,15 @@ public class GlobalException {
         ex.getBindingResult().getFieldErrors().forEach(error-> errors.put(error.getField(),error.getDefaultMessage()));
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
 
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<String> handleDuplicate(DuplicateResourceException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleDBDuplicate(DataIntegrityViolationException ex) {
+        return new ResponseEntity<>("Email already exists", HttpStatus.CONFLICT);
     }
 }

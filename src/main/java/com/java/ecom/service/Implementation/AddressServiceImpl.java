@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +23,7 @@ public class AddressServiceImpl implements AddressService {
     private final AddressMapper addressMapper;
 
     @Override
-    public List<AddressResponseDto> getAddressesByUser(Integer userId) {
+    public List<AddressResponseDto> getAddressesByUser(UUID userId) {
         User user = userRepo.findById(userId).orElseThrow(()->new NotFoundException("User not found"));
         return user.getAddress().stream().map(addressMapper::toResponseDto).toList();
     }
@@ -30,9 +31,14 @@ public class AddressServiceImpl implements AddressService {
     //baad m padhna h
     @Override
     @Transactional
-    public AddressResponseDto addAddress(Integer userId, AddressRequestDto dto) {
-        User user = userRepo.findById(userId).orElseThrow(()->new NotFoundException("user Not found"));
+    public AddressResponseDto addAddress(UUID userId, AddressRequestDto dto) {
+
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
         Address address = addressMapper.toEntity(dto);
+        address.setUser(user);
+
         if(user.getAddress().isEmpty()){
             address.setIsDefault(true);
         }
@@ -45,6 +51,7 @@ public class AddressServiceImpl implements AddressService {
         return addressMapper.toResponseDto(address);
     }
 
+
     private void unSetExistingDefault(User user) {
         user.getAddress().forEach(addr->addr.setIsDefault(false));
     }
@@ -52,7 +59,7 @@ public class AddressServiceImpl implements AddressService {
     //baad m
     @Override
     @Transactional
-    public AddressResponseDto updateAddress(Integer userId, Integer addressId, AddressRequestDto dto) {
+    public AddressResponseDto updateAddress(UUID userId, Integer addressId, AddressRequestDto dto) {
         User user = userRepo.findById(userId).orElseThrow(()->new NotFoundException("User not found for userId: "+ userId));
         Address address = user.getAddress().stream().filter(a-> false).findFirst().orElseThrow(()->new NotFoundException("Address not found"));
         addressMapper.updateEntityFromDto(dto,address);
@@ -66,7 +73,7 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     @Transactional
-    public void deleteAddress(Integer userId, Long addressId) {
+    public void deleteAddress(UUID userId, Long addressId) {
         User user = userRepo.findById(userId).orElseThrow(()->new NotFoundException("User not found"));
         Address address = user.getAddress().stream().filter(a->a.getId().equals(addressId)).findFirst().orElseThrow(()->new NotFoundException("Address Not found"));
         if(!user.getAddress().contains(address)){

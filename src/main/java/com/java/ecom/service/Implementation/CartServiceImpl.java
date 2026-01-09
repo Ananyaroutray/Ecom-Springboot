@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +28,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public CartResponseDto addToCart(Integer userId, AddToCartRequestDto dto) {
+    public CartResponseDto addToCart(UUID userId, AddToCartRequestDto dto) {
         // 1️ Fetch product
         Product product = productRepo.findById(dto.getProductId()).orElseThrow(()->new NotFoundException("product not found"));
 
@@ -76,13 +77,13 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public CartResponseDto viewCart(Integer userId) {
+    public CartResponseDto viewCart(UUID userId) {
         Cart cart = cartRepo.findByUserId(userId).orElseGet(()-> createNewCart(userId));
         return mapToResponse(cart);
     }
 
     @Override
-    public CartResponseDto updateCartItemQty(Integer userId, Long cartItemId, UpdateCartItemRequestDto dto) {
+    public CartResponseDto updateCartItemQty(UUID userId, Long cartItemId, UpdateCartItemRequestDto dto) {
 
         // 1️ Fetch cart
         Cart cart = cartRepo.findByUserId(userId).orElseThrow(()-> new NotFoundException("UserId not found"));
@@ -118,7 +119,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public CartResponseDto removeCartItem(Integer userId, Long cartItemId) {
+    public CartResponseDto removeCartItem(UUID userId, Long cartItemId) {
 
         // 1️ Fetch cart
         Cart cart = cartRepo.findByUserId(userId)
@@ -142,7 +143,7 @@ public class CartServiceImpl implements CartService {
     }
 
 
-    private Cart createNewCart(Integer userId) {
+    private Cart createNewCart(UUID userId) {
         Cart cart = new Cart();
         cart.setUserId(userId);
         cart.setTotalAmount(0.0);

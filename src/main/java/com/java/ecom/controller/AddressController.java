@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,22 +21,22 @@ public class AddressController {
     private final AddressService addressService;
 
     @GetMapping
-    public ResponseEntity<List<AddressResponseDto>> getAddressByUser(@PathVariable Integer userId){
+    public ResponseEntity<List<AddressResponseDto>> getAddressByUser(@PathVariable UUID userId){
         return new ResponseEntity<>(addressService.getAddressesByUser(userId),HttpStatus.OK);
     }
 
     @PostMapping
-    public ResponseEntity<AddressResponseDto> addAddress(@PathVariable Integer userId, @RequestBody AddressRequestDto dto){
+    public ResponseEntity<AddressResponseDto> addAddress(@PathVariable UUID userId, @RequestBody AddressRequestDto dto){
         return new ResponseEntity<>(addressService.addAddress(userId,dto), HttpStatus.CREATED);
     }
 
     @PutMapping
-    public ResponseEntity<AddressResponseDto> updateAddress(@PathVariable Integer uId, @PathVariable Integer aId, @RequestBody AddressRequestDto dto){
+    public ResponseEntity<AddressResponseDto> updateAddress(@PathVariable UUID uId, @PathVariable Integer aId, @RequestBody AddressRequestDto dto){
         return new ResponseEntity<>(addressService.updateAddress(uId,aId,dto), HttpStatus.OK);
     }
 
     @DeleteMapping("/{addressId}")
-    public void deleteAddress(@PathVariable Long addressId, @PathVariable Integer userId){
+    public void deleteAddress(@PathVariable Long addressId, @PathVariable UUID userId){
         addressService.deleteAddress(userId,addressId);
     }
 

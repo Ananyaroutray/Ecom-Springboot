@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/orders")
 @RequiredArgsConstructor
@@ -18,7 +20,7 @@ public class OrderController {
     // CHECKOUT--PLACE ORDER
     @PostMapping("/{userId}/checkout")
     public ResponseEntity<OrderResponseDto> checkout(
-            @PathVariable Integer userId,
+            @PathVariable UUID userId,
             @RequestBody CheckoutRequestDto dto) {
 
         OrderResponseDto response = orderService.checkout(userId, dto);
