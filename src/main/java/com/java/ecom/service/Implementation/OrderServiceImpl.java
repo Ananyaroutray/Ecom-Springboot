@@ -102,6 +102,71 @@ public class OrderServiceImpl implements OrderService {
         return mapToResponse(savedOrder);
     }
 
+    @Override
+    public void updateOrderStatus(Long orderId, OrderStatus status) {
+        Order order = orderRepo.findById(orderId).orElseThrow(()->new NotFoundException("Order not found"));
+
+        if(order.getStatus()==OrderStatus.CANCELLED){
+            throw new BadRequestException("cancelled order can't be updated");
+        }
+        if (order.getStatus() == OrderStatus.DELIVERED) {
+            throw new BadRequestException("Delivered order cannot be updated");
+        }
+
+        order.setStatus(status);
+        orderRepo.save(order);
+
+    }
+
+    @Override
+    public List<OrderResponseDto> getOrderHistory(UUID userId) {
+        userRepo.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        List<Order> orders = orderRepo.findByUserIdOrderByCreatedAtDesc(userId);
+        return orders.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void cancelOrder(Long orderId, UUID userId) {
+
+        // 1️ Fetch order
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        // 2️ Ownership check
+        if (!order.getUserId().equals(userId)) {
+            throw new BadRequestException("You cannot cancel someone else's order");
+        }
+
+        // 3️ Status validation
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BadRequestException("Order already cancelled");
+        }
+
+        if (order.getStatus() == OrderStatus.SHIPPED ||
+                order.getStatus() == OrderStatus.DELIVERED) {
+            throw new BadRequestException("Order cannot be cancelled now");
+        }
+
+        // 4️ Restore stock
+        for (OrderItem item : order.getItems()) {
+
+            Product product = productRepo.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            product.setStock(product.getStock() + item.getQuantity());
+            product.setIsAvailable(true);
+        }
+
+        // 5️ Cancel order
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepo.save(order);
+    }
+
+
 
     private OrderResponseDto mapToResponse(Order order) {
 
