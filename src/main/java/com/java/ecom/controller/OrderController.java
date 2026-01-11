@@ -1,6 +1,7 @@
 package com.java.ecom.controller;
 
 import com.java.ecom.dto.request.CheckoutRequestDto;
+import com.java.ecom.dto.request.PaymentRequestDto;
 import com.java.ecom.dto.response.OrderResponseDto;
 import com.java.ecom.enums.OrderStatus;
 import com.java.ecom.service.OrderService;
@@ -54,6 +55,17 @@ public class OrderController {
 
         orderService.cancelOrder(orderId, userId);
         return ResponseEntity.ok("Order cancelled successfully");
+    }
+
+    //PAYMENT
+    @PutMapping("/{orderId}/pay/{userId}")
+    public ResponseEntity<String> makePayment(
+            @PathVariable Long orderId,
+            @PathVariable UUID userId,
+            @RequestBody PaymentRequestDto dto) {
+
+        orderService.processPayment(orderId, userId, dto.isSuccess());
+        return ResponseEntity.ok("Payment processed");
     }
 
 }

@@ -12,4 +12,5 @@ public interface OrderService {
     void updateOrderStatus(Long orderId, OrderStatus status);
     List<OrderResponseDto> getOrderHistory(UUID userId);
     void cancelOrder(Long orderId, UUID userId);
+    void processPayment(Long orderId, UUID userId, boolean success);
 }

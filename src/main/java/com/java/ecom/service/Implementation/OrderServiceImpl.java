@@ -103,19 +103,25 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public void updateOrderStatus(Long orderId, OrderStatus status) {
-        Order order = orderRepo.findById(orderId).orElseThrow(()->new NotFoundException("Order not found"));
 
-        if(order.getStatus()==OrderStatus.CANCELLED){
-            throw new BadRequestException("cancelled order can't be updated");
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        // Admin should NOT mark PAID
+        if (status == OrderStatus.PAID) {
+            throw new BadRequestException("Payment must be done via payment API");
         }
-        if (order.getStatus() == OrderStatus.DELIVERED) {
-            throw new BadRequestException("Delivered order cannot be updated");
+
+        // Invalid transitions
+        if (order.getStatus() == OrderStatus.CANCELLED ||
+                order.getStatus() == OrderStatus.DELIVERED) {
+            throw new BadRequestException("Order cannot be updated");
         }
 
         order.setStatus(status);
         orderRepo.save(order);
-
     }
 
     @Override
@@ -162,6 +168,45 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 5️ Cancel order
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepo.save(order);
+    }
+
+    @Override
+    @Transactional
+    public void processPayment(Long orderId, UUID userId, boolean success) {
+
+        // 1️ Fetch order
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        // 2️ Ownership check
+        if (!order.getUserId().equals(userId)) {
+            throw new BadRequestException("You cannot pay for someone else's order");
+        }
+
+        // 3️ Status validation
+        if (order.getStatus() != OrderStatus.PLACED) {
+            throw new BadRequestException("Payment not allowed for this order status");
+        }
+
+        // 4️ Payment success
+        if (success) {
+            order.setStatus(OrderStatus.PAID);
+            orderRepo.save(order);
+            return;
+        }
+
+        // 5️ Payment failed → cancel order + restore stock
+        for (OrderItem item : order.getItems()) {
+
+            Product product = productRepo.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            product.setStock(product.getStock() + item.getQuantity());
+            product.setIsAvailable(true);
+        }
+
         order.setStatus(OrderStatus.CANCELLED);
         orderRepo.save(order);
     }
