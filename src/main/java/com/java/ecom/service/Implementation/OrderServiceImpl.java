@@ -7,6 +7,8 @@ import com.java.ecom.entity.*;
 import com.java.ecom.enums.OrderStatus;
 import com.java.ecom.exception.BadRequestException;
 import com.java.ecom.exception.NotFoundException;
+import com.java.ecom.pattern.PaymentStrategy;
+import com.java.ecom.pattern.PaymentStrategyFactory;
 import com.java.ecom.repository.*;
 import com.java.ecom.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepo productRepo;
     private final UserRepo userRepo;
     private final AddressRepo addressRepo;
+    private final PaymentStrategyFactory paymentStrategyFactory;
 
     @Override
     @Transactional
@@ -52,6 +55,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setUserId(userId);
         order.setStatus(OrderStatus.PLACED);
+        order.setPaymentMode(dto.getPaymentMode());
         order.setCreatedAt(LocalDateTime.now());
         order.setDeliveryAddress(
                 address.getStreet() + ", " +
@@ -176,40 +180,21 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void processPayment(Long orderId, UUID userId, boolean success) {
 
-        // 1️ Fetch order
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
-        // 2️ Ownership check
         if (!order.getUserId().equals(userId)) {
-            throw new BadRequestException("You cannot pay for someone else's order");
+            throw new BadRequestException("Unauthorized payment attempt");
         }
 
-        // 3️ Status validation
-        if (order.getStatus() != OrderStatus.PLACED) {
-            throw new BadRequestException("Payment not allowed for this order status");
-        }
+        PaymentStrategy strategy =
+                paymentStrategyFactory.getStrategy(order.getPaymentMode());
 
-        // 4️ Payment success
-        if (success) {
-            order.setStatus(OrderStatus.PAID);
-            orderRepo.save(order);
-            return;
-        }
+        strategy.processPayment(order, success);
 
-        // 5️ Payment failed → cancel order + restore stock
-        for (OrderItem item : order.getItems()) {
-
-            Product product = productRepo.findById(item.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
-
-            product.setStock(product.getStock() + item.getQuantity());
-            product.setIsAvailable(true);
-        }
-
-        order.setStatus(OrderStatus.CANCELLED);
         orderRepo.save(order);
     }
+
 
 
 

@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -22,6 +24,15 @@ public class GlobalException {
         error.setMessage(ex.getMessage());
         error.setDescription(request.getDescription(false));
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorDetails> handleBadRequest(BadRequestException ex, WebRequest request) {
+        ErrorDetails error = new ErrorDetails();
+        error.setStatus(HttpStatus.BAD_REQUEST.name());
+        error.setMessage(ex.getMessage());
+        error.setDescription(request.getDescription(false));
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

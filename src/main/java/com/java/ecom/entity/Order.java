@@ -1,6 +1,7 @@
 package com.java.ecom.entity;
 
 import com.java.ecom.enums.OrderStatus;
+import com.java.ecom.enums.PaymentMode;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -32,6 +33,9 @@ public class Order {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "order_id")
     private List<OrderItem> items = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    private PaymentMode paymentMode;
 
     private LocalDateTime createdAt;
 }

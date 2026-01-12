@@ -1,0 +1,75 @@
+🧑‍💼 ADMIN FLOW (Product & Order Management)
+
+1️⃣ Admin adds products
+→ POST /products (creates product with stock & availability)
+
+2️⃣ Admin updates product details / stock
+→ PUT /products/{productId}
+
+3️⃣ Admin deletes or deactivates products
+→ DELETE /products/{productId}
+
+4️⃣ Admin views all orders (optional extension)
+→ GET /orders (future enhancement)
+
+5️⃣ Admin updates order status after processing
+→ PUT /orders/{orderId}/status?status=SHIPPED / DELIVERED
+
+👤 USER FLOW (End-to-End Purchase Journey)
+🧾 User & Address
+
+1️⃣ User registers
+→ POST /users
+
+2️⃣ User adds address(es)
+→ POST /users/{userId}/address
+
+🛒 Product Browsing
+
+3️⃣ User views products
+→ GET /products
+
+🛍 Cart
+
+4️⃣ User adds product to cart
+→ POST /cart/{userId}/add
+
+5️⃣ User views cart
+→ GET /cart/{userId}
+
+6️⃣ User updates cart item quantity
+→ PUT /cart/{userId}/update
+
+7️⃣ User removes item from cart
+→ DELETE /cart/{userId}/remove/{productId}
+
+📦 Checkout → Order
+
+8️⃣ User checks out cart (creates order)
+→ POST /orders/{userId}/checkout
+✔ Cart → Order
+✔ Stock reduced
+✔ Cart cleared
+✔ Status = PLACED
+
+💳 Payment
+
+9️⃣ User makes payment (mock / strategy-based)
+→ PUT /orders/{orderId}/pay/{userId}
+✔ Status → PAID
+✔ PaymentMode saved (ONLINE / COD)
+
+📜 Orders
+
+🔟 User views order history
+→ GET /orders/{userId}
+
+1️⃣1️⃣ User cancels order (if not shipped)
+→ PUT /orders/{orderId}/cancel/{userId}
+✔ Status → CANCELLED
+✔ Stock restored
+
+🔄 ORDER STATUS LIFECYCLE (VERY IMPORTANT)
+PLACED → PAID → SHIPPED → DELIVERED
+           ↓
+       CANCELLED
