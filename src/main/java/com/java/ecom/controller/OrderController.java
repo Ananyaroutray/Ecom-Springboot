@@ -59,13 +59,13 @@ public class OrderController {
 
     //PAYMENT
     @PutMapping("/{orderId}/pay/{userId}")
-    public ResponseEntity<String> makePayment(
+    public ResponseEntity<String> processPayment(
             @PathVariable Long orderId,
             @PathVariable UUID userId,
-            @RequestBody PaymentRequestDto dto) {
-
-        orderService.processPayment(orderId, userId, dto.isSuccess());
-        return ResponseEntity.ok("Payment processed");
+            @RequestBody PaymentRequestDto dto
+    ) {
+        orderService.processPayment(orderId, userId, dto);
+        return ResponseEntity.ok("Payment processed successfully");
     }
 
 }

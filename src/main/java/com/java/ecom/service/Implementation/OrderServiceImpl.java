@@ -1,6 +1,7 @@
 package com.java.ecom.service.Implementation;
 
 import com.java.ecom.dto.request.CheckoutRequestDto;
+import com.java.ecom.dto.request.PaymentRequestDto;
 import com.java.ecom.dto.response.OrderItemResponseDto;
 import com.java.ecom.dto.response.OrderResponseDto;
 import com.java.ecom.entity.*;
@@ -55,7 +56,6 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setUserId(userId);
         order.setStatus(OrderStatus.PLACED);
-        order.setPaymentMode(dto.getPaymentMode());
         order.setCreatedAt(LocalDateTime.now());
         order.setDeliveryAddress(
                 address.getStreet() + ", " +
@@ -178,7 +178,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void processPayment(Long orderId, UUID userId, boolean success) {
+    public void processPayment(Long orderId, UUID userId, PaymentRequestDto dto) {
 
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
@@ -187,12 +187,16 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("Unauthorized payment attempt");
         }
 
+        if (order.getStatus() != OrderStatus.PLACED) {
+            throw new BadRequestException("Payment not allowed for this order status");
+        }
+
         PaymentStrategy strategy =
-                paymentStrategyFactory.getStrategy(order.getPaymentMode());
+                paymentStrategyFactory.getStrategy(dto.getPaymentMode());
 
-        strategy.processPayment(order, success);
+        strategy.processPayment(order, dto.getSuccess());
 
-        orderRepo.save(order);
+        orderRepo.save(order); // only order saved here
     }
 
 

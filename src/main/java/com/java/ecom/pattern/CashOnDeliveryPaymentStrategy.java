@@ -1,26 +1,37 @@
 package com.java.ecom.pattern;
 
 import com.java.ecom.entity.Order;
+import com.java.ecom.entity.Payment;
 import com.java.ecom.enums.OrderStatus;
-import com.java.ecom.exception.BadRequestException;
+import com.java.ecom.enums.PaymentMode;
+import com.java.ecom.enums.PaymentStatus;
+import com.java.ecom.repository.PaymentRepo;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
 @Component
+@RequiredArgsConstructor
 public class CashOnDeliveryPaymentStrategy implements PaymentStrategy{
+
+    private final PaymentRepo paymentRepo;
 
     @Override
     public void processPayment(Order order, boolean success) {
 
-        if (order.getStatus() != OrderStatus.DELIVERED) {
-            throw new BadRequestException(
-                    "COD payment allowed only after delivery"
-            );
-        }
+        Payment payment = new Payment();
+        payment.setOrderId(order.getId());
+        payment.setUserId(order.getUserId().toString());
+        payment.setPaymentMode(PaymentMode.CASH_ON_DELIVERY);
+        payment.setPaymentTime(LocalDateTime.now());
 
-        if (!success) {
-            throw new BadRequestException("COD payment failed");
-        }
+        // COD never fails at payment time
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
 
-        order.setStatus(OrderStatus.PAID);
+        paymentRepo.save(payment);
+
+        // Order is CONFIRMED, not PAID
+        order.setStatus(OrderStatus.CONFIRMED);
     }
 }
