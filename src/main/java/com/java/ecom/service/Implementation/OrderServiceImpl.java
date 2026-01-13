@@ -6,10 +6,13 @@ import com.java.ecom.dto.response.OrderItemResponseDto;
 import com.java.ecom.dto.response.OrderResponseDto;
 import com.java.ecom.entity.*;
 import com.java.ecom.enums.OrderStatus;
+import com.java.ecom.enums.PaymentStatus;
 import com.java.ecom.exception.BadRequestException;
 import com.java.ecom.exception.NotFoundException;
 import com.java.ecom.pattern.PaymentStrategy;
 import com.java.ecom.pattern.PaymentStrategyFactory;
+import com.java.ecom.pattern.refundStrategy.RefundStrategy;
+import com.java.ecom.pattern.refundStrategy.RefundStrategyFactory;
 import com.java.ecom.repository.*;
 import com.java.ecom.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,8 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepo userRepo;
     private final AddressRepo addressRepo;
     private final PaymentStrategyFactory paymentStrategyFactory;
+    private final PaymentRepo paymentRepo;
+    private final RefundStrategyFactory refundStrategyFactory;
 
     @Override
     @Transactional
@@ -171,7 +176,16 @@ public class OrderServiceImpl implements OrderService {
             product.setIsAvailable(true);
         }
 
-        // 5️ Cancel order
+        //5 refund
+        Payment payment = paymentRepo.findByOrderId(orderId).orElse(null);
+
+        if (payment != null && payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
+            RefundStrategy refundStrategy =
+                    refundStrategyFactory.getStrategy(payment.getPaymentMode());
+            refundStrategy.processRefund(order);
+        }
+
+        // 6 cancel order
         order.setStatus(OrderStatus.CANCELLED);
         orderRepo.save(order);
     }
