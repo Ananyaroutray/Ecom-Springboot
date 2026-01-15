@@ -2,11 +2,16 @@ package com.java.ecom.enums;
 
 public enum OrderStatus {
     PLACED,
-    PAID,
-    PAYMENT_FAILED,
     CONFIRMED,
-    CANCELLED,
+    PAID,
     SHIPPED,
-    DELIVERED
+    DELIVERED,
+
+    RETURN_REQUESTED,
+    RETURN_APPROVED,
+    RETURNED,
+
+    CANCELLED,
+    PAYMENT_FAILED
 }
 

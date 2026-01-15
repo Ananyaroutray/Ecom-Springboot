@@ -1,4 +1,4 @@
-package com.java.ecom.pattern;
+package com.java.ecom.pattern.paymentStrategy;
 
 import com.java.ecom.entity.Order;
 

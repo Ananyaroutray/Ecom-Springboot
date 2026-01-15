@@ -1,7 +1,6 @@
 package com.java.ecom.entity;
 
-import com.java.ecom.enums.PaymentMode;
-import com.java.ecom.enums.RefundStatus;
+import com.java.ecom.enums.ReturnStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,26 +12,20 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Refund {
+public class Return {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private Long orderId;
+    private String userId;
 
     @Enumerated(EnumType.STRING)
-    private PaymentMode paymentMode;
+    private ReturnStatus returnStatus;
 
-    @Enumerated(EnumType.STRING)
-    private RefundStatus refundStatus;
+    private String reason;
 
-    private String upiId;
-    private String bankAccount;
-    private String ifscCode;
-
-    private String refundReference;
-    private LocalDateTime refundTime;
-
+    private LocalDateTime requestedAt;
+    private LocalDateTime approvedAt;
 }
-

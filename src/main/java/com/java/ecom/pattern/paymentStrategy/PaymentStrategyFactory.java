@@ -1,4 +1,4 @@
-package com.java.ecom.pattern;
+package com.java.ecom.pattern.paymentStrategy;
 
 import com.java.ecom.enums.PaymentMode;
 import com.java.ecom.exception.BadRequestException;

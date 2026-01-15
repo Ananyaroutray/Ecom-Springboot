@@ -1,11 +1,10 @@
-package com.java.ecom.pattern;
+package com.java.ecom.pattern.paymentStrategy;
 
 import com.java.ecom.entity.Order;
 import com.java.ecom.entity.Payment;
 import com.java.ecom.enums.OrderStatus;
 import com.java.ecom.enums.PaymentMode;
 import com.java.ecom.enums.PaymentStatus;
-import com.java.ecom.exception.BadRequestException;
 import com.java.ecom.repository.PaymentRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -14,7 +13,7 @@ import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
-public class OnlinePaymentStrategy implements PaymentStrategy{
+public class OnlinePaymentStrategy implements PaymentStrategy {
 
 
     private final PaymentRepo paymentRepo;

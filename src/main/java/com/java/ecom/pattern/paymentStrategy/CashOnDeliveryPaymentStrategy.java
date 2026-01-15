@@ -1,4 +1,4 @@
-package com.java.ecom.pattern;
+package com.java.ecom.pattern.paymentStrategy;
 
 import com.java.ecom.entity.Order;
 import com.java.ecom.entity.Payment;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
-public class CashOnDeliveryPaymentStrategy implements PaymentStrategy{
+public class CashOnDeliveryPaymentStrategy implements PaymentStrategy {
 
     private final PaymentRepo paymentRepo;
 

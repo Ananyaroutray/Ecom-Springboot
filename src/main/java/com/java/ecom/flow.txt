@@ -1,75 +1,167 @@
-🧑‍💼 ADMIN FLOW (Product & Order Management)
+E-Commerce Backend Application
 
-1️⃣ Admin adds products
-→ POST /products (creates product with stock & availability)
+A production-oriented **Spring Boot e-commerce backend** implementing complete
+**cart → order → payment → refund → return lifecycle** using clean architecture
+and design patterns.
 
-2️⃣ Admin updates product details / stock
-→ PUT /products/{productId}
+---
 
-3️⃣ Admin deletes or deactivates products
-→ DELETE /products/{productId}
+## Tech Stack
+- Java 17
+- Spring Boot
+- Spring Data JPA
+- MySQL
+- Hibernate
+- Lombok
+- REST APIs
+- Strategy Design Pattern
+- UUID-based User IDs
 
-4️⃣ Admin views all orders (optional extension)
-→ GET /orders (future enhancement)
+---
 
-5️⃣ Admin updates order status after processing
-→ PUT /orders/{orderId}/status?status=SHIPPED / DELIVERED
+## Key Design Principles
+- Separation of concerns
+- Strategy Pattern for Payment & Refund
+- Transactional consistency
+- Clear order lifecycle management
+- Scalable for microservices & Kafka later
 
-👤 USER FLOW (End-to-End Purchase Journey)
-🧾 User & Address
+---
 
-1️⃣ User registers
-→ POST /users
+# USER FLOW
 
-2️⃣ User adds address(es)
-→ POST /users/{userId}/address
+## 1️⃣ User & Address
+- User registers (UUID generated)
+- User can add multiple addresses
 
-🛒 Product Browsing
+POST /users
+POST /users/{userId}/address
+GET /users/{userId}/address
 
-3️⃣ User views products
-→ GET /products
+-----------------------------------------------------------------------------------------------------------
 
-🛍 Cart
+## 2️⃣ Product Browsing
+- View all available products
 
-4️⃣ User adds product to cart
-→ POST /cart/{userId}/add
+GET /products
 
-5️⃣ User views cart
-→ GET /cart/{userId}
+--------------------------------------------------------------------------------------------------------------
 
-6️⃣ User updates cart item quantity
-→ PUT /cart/{userId}/update
+## 3️⃣ Cart Management
+- Add product to cart
+- Update quantity
+- Remove product
+- View cart
 
-7️⃣ User removes item from cart
-→ DELETE /cart/{userId}/remove/{productId}
+POST /cart/{userId}/add
+PUT /cart/{userId}/update
+DELETE /cart/{userId}/remove/{productId}
+GET /cart/{userId}
 
-📦 Checkout → Order
+--------------------------------------------------------------------------------------------------------------
 
-8️⃣ User checks out cart (creates order)
-→ POST /orders/{userId}/checkout
-✔ Cart → Order
-✔ Stock reduced
-✔ Cart cleared
-✔ Status = PLACED
+## 4️⃣ Checkout (Order Creation)
+- Cart converted into Order
+- Stock validated & reserved
+- Cart cleared
 
-💳 Payment
+POST /orders/{userId}/checkout
 
-9️⃣ User makes payment (mock / strategy-based)
-→ PUT /orders/{orderId}/pay/{userId}
-✔ Status → PAID
-✔ PaymentMode saved (ONLINE / COD)
+**Result**
+OrderStatus = PLACED
 
-📜 Orders
+-----------------------------------------------------------------------------------------------------------
 
-🔟 User views order history
-→ GET /orders/{userId}
+## 5️⃣ Payment (Strategy Pattern)
 
-1️⃣1️⃣ User cancels order (if not shipped)
-→ PUT /orders/{orderId}/cancel/{userId}
-✔ Status → CANCELLED
-✔ Stock restored
+### ONLINE
+PLACED → PAID
 
-🔄 ORDER STATUS LIFECYCLE (VERY IMPORTANT)
-PLACED → PAID → SHIPPED → DELIVERED
-           ↓
-       CANCELLED
+### CASH ON DELIVERY (COD)
+PLACED → CONFIRMED
+
+PUT /orders/{orderId}/pay/{userId}
+
+json:
+{
+  "paymentMode": "ONLINE | COD",
+  "success": true
+}
+
+-----------------------------------------------------------------------------------------------------------
+
+6️⃣ Order Lifecycle
+ONLINE
+PLACED → PAID → CONFIRMED → SHIPPED → DELIVERED
+
+COD
+PLACED → CONFIRMED → SHIPPED → DELIVERED → PAID
+---------------------
+7️⃣ Order History
+GET /orders/{userId}
+-------------------------
+8️⃣ Cancel Order (Before Delivery)
+Rules
+Status	          Cancel	          Refund
+CONFIRMED (COD) 	✅	               ❌
+PAID	            ✅	               ✅
+SHIPPED	            ❌	               ❌
+DELIVERED	        ❌	               ❌
+PUT /orders/{orderId}/cancel/{userId}
+-----------------------------------------------------
+9️⃣ Return Order (After Delivery – Planned)
+DELIVERED
+ ↓
+RETURN_REQUESTED
+ ↓
+RETURN_APPROVED
+ ↓
+BANK_DETAILS_SUBMITTED (COD)
+ ↓
+REFUND_INITIATED
+ ↓
+REFUNDED
+-------------------------------------------------------------------------
+
+
+🧑‍💼 ADMIN FLOW
+1️⃣ Product Management
+POST   /products
+PUT    /products/{productId}
+DELETE /products/{productId}
+--------------------------------------------------
+2️⃣ Order Fulfillment
+PUT /orders/{orderId}/status?status=SHIPPED
+PUT /orders/{orderId}/status?status=DELIVERED
+-------------------------------------------------------------------
+3️⃣ Refund Handling (Strategy Pattern)
+
+ONLINE → Refund
+COD → Not applicable
+--------------------------------------
+💳 Payment & Refund
+Payment
+Separate Payment entity
+Persisted via PaymentStrategy
+Refund
+Separate Refund entity
+Triggered on cancel of PAID orders
+
+------------------------------------------------------------------------------------------
+
+🧠 Design Patterns Used
+Pattern	Purpose
+Strategy: Payment & Refund
+Factory	Strategy selection
+Transaction Management	Data consistency
+--------------------------------------------
+🔐 Security (Planned)
+JWT Authentication
+Role-based access (USER / ADMIN)
+----------------------------------
+📦 Future Enhancements
+Order State Machine
+Kafka events
+Payment gateway integration
+Return window rules
+Microservices migration

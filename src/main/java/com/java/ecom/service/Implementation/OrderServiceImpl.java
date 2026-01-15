@@ -2,17 +2,22 @@ package com.java.ecom.service.Implementation;
 
 import com.java.ecom.dto.request.CheckoutRequestDto;
 import com.java.ecom.dto.request.PaymentRequestDto;
+import com.java.ecom.dto.request.RefundBankDetailsDto;
+import com.java.ecom.dto.request.ReturnRequestDto;
 import com.java.ecom.dto.response.OrderItemResponseDto;
 import com.java.ecom.dto.response.OrderResponseDto;
 import com.java.ecom.entity.*;
 import com.java.ecom.enums.OrderStatus;
-import com.java.ecom.enums.PaymentStatus;
+import com.java.ecom.enums.RefundStatus;
+import com.java.ecom.enums.ReturnStatus;
 import com.java.ecom.exception.BadRequestException;
 import com.java.ecom.exception.NotFoundException;
-import com.java.ecom.pattern.PaymentStrategy;
-import com.java.ecom.pattern.PaymentStrategyFactory;
+import com.java.ecom.pattern.paymentStrategy.PaymentStrategy;
+import com.java.ecom.pattern.paymentStrategy.PaymentStrategyFactory;
 import com.java.ecom.pattern.refundStrategy.RefundStrategy;
 import com.java.ecom.pattern.refundStrategy.RefundStrategyFactory;
+import com.java.ecom.pattern.returnStrategy.ReturnStrategy;
+import com.java.ecom.pattern.returnStrategy.ReturnStrategyFactory;
 import com.java.ecom.repository.*;
 import com.java.ecom.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +41,9 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentStrategyFactory paymentStrategyFactory;
     private final PaymentRepo paymentRepo;
     private final RefundStrategyFactory refundStrategyFactory;
+    private final ReturnRepo returnRepo;
+    private final ReturnStrategyFactory returnStrategyFactory;
+    private final RefundRepo refundRepo;
 
     @Override
     @Transactional
@@ -166,6 +174,11 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("Order cannot be cancelled now");
         }
 
+        if (order.getStatus() != OrderStatus.PAID &&
+                order.getStatus() != OrderStatus.CONFIRMED) {
+            throw new BadRequestException("Order cannot be cancelled at this stage");
+        }
+
         // 4️ Restore stock
         for (OrderItem item : order.getItems()) {
 
@@ -176,16 +189,16 @@ public class OrderServiceImpl implements OrderService {
             product.setIsAvailable(true);
         }
 
-        //5 refund
-        Payment payment = paymentRepo.findByOrderId(orderId).orElse(null);
-
-        if (payment != null && payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
+        // 5️ Refund ONLY if PAID
+        if (order.getStatus() == OrderStatus.PAID) {
+            Payment payment = paymentRepo.findByOrderId(orderId)
+                    .orElseThrow(() -> new RuntimeException("Payment not found"));
             RefundStrategy refundStrategy =
                     refundStrategyFactory.getStrategy(payment.getPaymentMode());
             refundStrategy.processRefund(order);
         }
 
-        // 6 cancel order
+        // 6️ Cancel order
         order.setStatus(OrderStatus.CANCELLED);
         orderRepo.save(order);
     }
@@ -213,6 +226,95 @@ public class OrderServiceImpl implements OrderService {
         orderRepo.save(order); // only order saved here
     }
 
+    @Transactional
+    @Override
+    public void requestReturn(Long orderId, UUID userId, ReturnRequestDto dto) {
+
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        if (!order.getUserId().equals(userId)) {
+            throw new BadRequestException("Unauthorized return request");
+        }
+
+        if (order.getStatus() != OrderStatus.DELIVERED) {
+            throw new BadRequestException("Return allowed only after delivery");
+        }
+
+        // 7-day return window
+        if (order.getDeliveredAt().plusDays(7).isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Return window expired");
+        }
+
+        Return returnEntity = new Return();
+        returnEntity.setOrderId(orderId);
+        returnEntity.setUserId(userId.toString());
+        returnEntity.setReturnStatus(ReturnStatus.REQUESTED);
+        returnEntity.setReason(dto.getReason());
+        returnEntity.setRequestedAt(LocalDateTime.now());
+
+        returnRepo.save(returnEntity);
+
+        order.setStatus(OrderStatus.RETURN_REQUESTED);
+        orderRepo.save(order);
+    }
+
+    @Transactional
+    @Override
+    public void approveReturn(Long orderId) {
+
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        Return returnEntity = returnRepo.findByOrderId(orderId)
+                .orElseThrow(() -> new NotFoundException("Return request not found"));
+
+        if (returnEntity.getReturnStatus() != ReturnStatus.REQUESTED) {
+            throw new BadRequestException("Return already processed");
+        }
+
+        Payment payment = paymentRepo.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+
+        ReturnStrategy strategy =
+                returnStrategyFactory.getStrategy(payment.getPaymentMode());
+
+        returnEntity.setReturnStatus(ReturnStatus.APPROVED);
+        returnEntity.setApprovedAt(LocalDateTime.now());
+
+        strategy.processReturn(returnEntity, order);
+
+        returnRepo.save(returnEntity);
+        orderRepo.save(order);
+    }
+
+    @Transactional
+    public void submitRefundBankDetails(Long orderId, UUID userId, RefundBankDetailsDto dto) {
+
+        Refund refund = refundRepo.findByOrderId(orderId)
+                .orElseThrow(() -> new NotFoundException("Refund not found"));
+
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        if (!order.getUserId().equals(userId)) {
+            throw new BadRequestException("Unauthorized");
+        }
+
+        if (refund.getRefundStatus() != RefundStatus.BANK_DETAILS_REQUIRED) {
+            throw new BadRequestException("Bank details not required");
+        }
+
+        refund.setUpiId(dto.getUpiId());
+        refund.setBankAccount(dto.getBankAccount());
+        refund.setIfscCode(dto.getIfscCode());
+
+        refund.setRefundStatus(RefundStatus.INITIATED);
+        refund.setRefundReference("REF_" + System.currentTimeMillis());
+        refund.setRefundTime(LocalDateTime.now());
+
+        refundRepo.save(refund);
+    }
 
 
 

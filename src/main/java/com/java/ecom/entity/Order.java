@@ -35,5 +35,6 @@ public class Order {
     private List<OrderItem> items = new ArrayList<>();
 
     private LocalDateTime createdAt;
+    private LocalDateTime deliveredAt;
 }
 
