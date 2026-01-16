@@ -2,7 +2,7 @@ package com.java.ecom.pattern.returnStrategy;
 
 import com.java.ecom.entity.Order;
 import com.java.ecom.entity.Refund;
-import com.java.ecom.entity.Return;
+import com.java.ecom.entity.OrderReturn;
 import com.java.ecom.enums.OrderStatus;
 import com.java.ecom.enums.PaymentMode;
 import com.java.ecom.enums.RefundStatus;
@@ -17,7 +17,7 @@ public class CodReturnStrategy implements ReturnStrategy {
     private final RefundRepo refundRepo;
 
     @Override
-    public void processReturn(Return returnEntity, Order order) {
+    public void processReturn(OrderReturn returnEntity, Order order) {
 
         Refund refund = new Refund();
         refund.setOrderId(order.getId());

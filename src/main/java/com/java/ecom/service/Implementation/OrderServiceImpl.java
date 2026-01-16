@@ -246,7 +246,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("Return window expired");
         }
 
-        Return returnEntity = new Return();
+        OrderReturn returnEntity = new OrderReturn();
         returnEntity.setOrderId(orderId);
         returnEntity.setUserId(userId.toString());
         returnEntity.setReturnStatus(ReturnStatus.REQUESTED);
@@ -266,7 +266,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
-        Return returnEntity = returnRepo.findByOrderId(orderId)
+        OrderReturn returnEntity = returnRepo.findByOrderId(orderId)
                 .orElseThrow(() -> new NotFoundException("Return request not found"));
 
         if (returnEntity.getReturnStatus() != ReturnStatus.REQUESTED) {

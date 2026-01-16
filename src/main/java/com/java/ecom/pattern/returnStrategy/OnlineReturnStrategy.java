@@ -1,7 +1,7 @@
 package com.java.ecom.pattern.returnStrategy;
 
 import com.java.ecom.entity.Order;
-import com.java.ecom.entity.Return;
+import com.java.ecom.entity.OrderReturn;
 import com.java.ecom.enums.OrderStatus;
 import com.java.ecom.enums.PaymentMode;
 import com.java.ecom.enums.ReturnStatus;
@@ -17,7 +17,7 @@ public class OnlineReturnStrategy implements ReturnStrategy {
     private final RefundStrategyFactory refundStrategyFactory;
 
     @Override
-    public void processReturn(Return returnEntity, Order order) {
+    public void processReturn(OrderReturn returnEntity, Order order) {
 
         order.setStatus(OrderStatus.RETURNED);
         returnEntity.setReturnStatus(ReturnStatus.COMPLETED);

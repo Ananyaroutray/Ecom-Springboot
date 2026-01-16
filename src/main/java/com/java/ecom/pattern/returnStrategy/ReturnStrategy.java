@@ -1,8 +1,8 @@
 package com.java.ecom.pattern.returnStrategy;
 
 import com.java.ecom.entity.Order;
-import com.java.ecom.entity.Return;
+import com.java.ecom.entity.OrderReturn;
 
 public interface ReturnStrategy {
-    void processReturn(Return returnEntity, Order order);
+    void processReturn(OrderReturn returnEntity, Order order);
 }
