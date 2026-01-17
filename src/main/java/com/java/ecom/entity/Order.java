@@ -27,6 +27,9 @@ public class Order {
     @Column(length = 20)
     private OrderStatus status;
 
+    @Enumerated(EnumType.STRING)
+    private PaymentMode paymentMode;
+
     // snapshot of address
     private String deliveryAddress;
 

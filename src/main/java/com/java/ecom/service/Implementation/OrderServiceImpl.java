@@ -8,6 +8,7 @@ import com.java.ecom.dto.response.OrderItemResponseDto;
 import com.java.ecom.dto.response.OrderResponseDto;
 import com.java.ecom.entity.*;
 import com.java.ecom.enums.OrderStatus;
+import com.java.ecom.enums.PaymentMode;
 import com.java.ecom.enums.RefundStatus;
 import com.java.ecom.enums.ReturnStatus;
 import com.java.ecom.exception.BadRequestException;
@@ -121,25 +122,56 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void updateOrderStatus(Long orderId, OrderStatus status) {
+    public void updateOrderStatus(Long orderId, OrderStatus newStatus) {
 
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
-        // Admin should NOT mark PAID
-        if (status == OrderStatus.PAID) {
-            throw new BadRequestException("Payment must be done via payment API");
+        OrderStatus current = order.getStatus();
+
+        // STATUS TRANSITION VALIDATION
+        switch (newStatus) {
+
+            case CONFIRMED -> {
+                if (current != OrderStatus.PLACED && current != OrderStatus.PAID) {
+                    throw new BadRequestException("Invalid transition");
+                }
+            }
+
+            case SHIPPED -> {
+                if (order.getPaymentMode() == PaymentMode.ONLINE &&
+                        current != OrderStatus.PAID) {
+                    throw new BadRequestException("Online payment required before shipping");
+                }
+                if (order.getPaymentMode() == PaymentMode.CASH_ON_DELIVERY &&
+                        current != OrderStatus.CONFIRMED) {
+                    throw new BadRequestException("Order must be confirmed first");
+                }
+            }
+
+            case DELIVERED -> {
+                if (order.getPaymentMode() == PaymentMode.ONLINE &&
+                        current != OrderStatus.SHIPPED) {
+                    throw new BadRequestException("Invalid delivery state");
+                }
+                if (order.getPaymentMode() == PaymentMode.CASH_ON_DELIVERY &&
+                        current != OrderStatus.SHIPPED) {
+                    throw new BadRequestException("Order must be shipped first");
+                }
+
+                // COD → mark PAID at delivery
+                if (order.getPaymentMode() == PaymentMode.CASH_ON_DELIVERY) {
+                    order.setStatus(OrderStatus.PAID);
+                }
+            }
+
+            default -> throw new BadRequestException("Unsupported status transition");
         }
 
-        // Invalid transitions
-        if (order.getStatus() == OrderStatus.CANCELLED ||
-                order.getStatus() == OrderStatus.DELIVERED) {
-            throw new BadRequestException("Order cannot be updated");
-        }
-
-        order.setStatus(status);
+        order.setStatus(newStatus);
         orderRepo.save(order);
     }
+
 
     @Override
     public List<OrderResponseDto> getOrderHistory(UUID userId) {
@@ -203,118 +235,6 @@ public class OrderServiceImpl implements OrderService {
         orderRepo.save(order);
     }
 
-    @Override
-    @Transactional
-    public void processPayment(Long orderId, UUID userId, PaymentRequestDto dto) {
-
-        Order order = orderRepo.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
-
-        if (!order.getUserId().equals(userId)) {
-            throw new BadRequestException("Unauthorized payment attempt");
-        }
-
-        if (order.getStatus() != OrderStatus.PLACED) {
-            throw new BadRequestException("Payment not allowed for this order status");
-        }
-
-        PaymentStrategy strategy =
-                paymentStrategyFactory.getStrategy(dto.getPaymentMode());
-
-        strategy.processPayment(order, dto.getSuccess());
-
-        orderRepo.save(order); // only order saved here
-    }
-
-    @Transactional
-    @Override
-    public void requestReturn(Long orderId, UUID userId, ReturnRequestDto dto) {
-
-        Order order = orderRepo.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
-
-        if (!order.getUserId().equals(userId)) {
-            throw new BadRequestException("Unauthorized return request");
-        }
-
-        if (order.getStatus() != OrderStatus.DELIVERED) {
-            throw new BadRequestException("Return allowed only after delivery");
-        }
-
-        // 7-day return window
-        if (order.getDeliveredAt().plusDays(7).isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Return window expired");
-        }
-
-        OrderReturn returnEntity = new OrderReturn();
-        returnEntity.setOrderId(orderId);
-        returnEntity.setUserId(userId.toString());
-        returnEntity.setReturnStatus(ReturnStatus.REQUESTED);
-        returnEntity.setReason(dto.getReason());
-        returnEntity.setRequestedAt(LocalDateTime.now());
-
-        returnRepo.save(returnEntity);
-
-        order.setStatus(OrderStatus.RETURN_REQUESTED);
-        orderRepo.save(order);
-    }
-
-    @Transactional
-    @Override
-    public void approveReturn(Long orderId) {
-
-        Order order = orderRepo.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
-
-        OrderReturn returnEntity = returnRepo.findByOrderId(orderId)
-                .orElseThrow(() -> new NotFoundException("Return request not found"));
-
-        if (returnEntity.getReturnStatus() != ReturnStatus.REQUESTED) {
-            throw new BadRequestException("Return already processed");
-        }
-
-        Payment payment = paymentRepo.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
-
-        ReturnStrategy strategy =
-                returnStrategyFactory.getStrategy(payment.getPaymentMode());
-
-        returnEntity.setReturnStatus(ReturnStatus.APPROVED);
-        returnEntity.setApprovedAt(LocalDateTime.now());
-
-        strategy.processReturn(returnEntity, order);
-
-        returnRepo.save(returnEntity);
-        orderRepo.save(order);
-    }
-
-    @Transactional
-    public void submitRefundBankDetails(Long orderId, UUID userId, RefundBankDetailsDto dto) {
-
-        Refund refund = refundRepo.findByOrderId(orderId)
-                .orElseThrow(() -> new NotFoundException("Refund not found"));
-
-        Order order = orderRepo.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
-
-        if (!order.getUserId().equals(userId)) {
-            throw new BadRequestException("Unauthorized");
-        }
-
-        if (refund.getRefundStatus() != RefundStatus.BANK_DETAILS_REQUIRED) {
-            throw new BadRequestException("Bank details not required");
-        }
-
-        refund.setUpiId(dto.getUpiId());
-        refund.setBankAccount(dto.getBankAccount());
-        refund.setIfscCode(dto.getIfscCode());
-
-        refund.setRefundStatus(RefundStatus.INITIATED);
-        refund.setRefundReference("REF_" + System.currentTimeMillis());
-        refund.setRefundTime(LocalDateTime.now());
-
-        refundRepo.save(refund);
-    }
 
 
 

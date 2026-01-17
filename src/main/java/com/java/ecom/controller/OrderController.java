@@ -57,15 +57,5 @@ public class OrderController {
         return ResponseEntity.ok("Order cancelled successfully");
     }
 
-    //PAYMENT
-    @PutMapping("/{orderId}/pay/{userId}")
-    public ResponseEntity<String> processPayment(
-            @PathVariable Long orderId,
-            @PathVariable UUID userId,
-            @RequestBody PaymentRequestDto dto
-    ) {
-        orderService.processPayment(orderId, userId, dto);
-        return ResponseEntity.ok("Payment processed successfully");
-    }
 
 }
