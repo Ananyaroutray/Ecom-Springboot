@@ -52,4 +52,11 @@ public class RefundServiceImpl implements RefundService {
 
         refundRepo.save(refund);
     }
+
+    @Override
+    public Refund getRefundByOrderId(Long orderId) {
+
+        return refundRepo.findByOrderId(orderId)
+                .orElseThrow(() -> new NotFoundException("Refund not found for orderId: " + orderId));
+    }
 }
