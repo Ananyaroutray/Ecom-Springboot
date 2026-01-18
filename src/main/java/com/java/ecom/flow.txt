@@ -54,7 +54,7 @@ GET /products
 - View cart
 
 POST /cart/{userId}/add
-PUT /cart/{userId}/update
+PUT /cart/{userId}/item/{itemId}
 DELETE /cart/{userId}/remove/{productId}
 GET /cart/{userId}
 
@@ -80,7 +80,7 @@ PLACED → PAID
 ### CASH ON DELIVERY (COD)
 PLACED → CONFIRMED
 
-PUT /orders/{orderId}/pay/{userId}
+PUT /payment/{orderId}/pay/{userId}
 
 json:
 {
@@ -112,15 +112,15 @@ PUT /orders/{orderId}/cancel/{userId}
 9️⃣ Return Order (After Delivery – Planned)
 DELIVERED
  ↓
-RETURN_REQUESTED
+RETURN_REQUESTED ( PUT /return/{orderId}/return/{userId} )
  ↓
-RETURN_APPROVED
+RETURN_APPROVED ( PUT /return/admin/{orderId}/return/approve )
  ↓
-BANK_DETAILS_SUBMITTED (COD)
+BANK_DETAILS_SUBMITTED (COD) ( PUT /refund/{orderId}/bank-details/{userId} )
  ↓
 REFUND_INITIATED
  ↓
-REFUNDED
+REFUNDED ( GET /refund/{orderId} )
 -------------------------------------------------------------------------
 
 

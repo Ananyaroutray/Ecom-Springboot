@@ -2,6 +2,7 @@ package com.java.ecom.controller;
 
 import com.java.ecom.dto.request.RefundBankDetailsDto;
 import com.java.ecom.entity.Refund;
+import com.java.ecom.enums.PaymentMode;
 import com.java.ecom.service.RefundService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,18 +17,18 @@ public class RefundController {
 
     private final RefundService refundService;
 
-    // USER (COD) → Submit Bank / UPI Details
+    // USER → Submit bank / UPI details (only for COD)
     @PutMapping("/{orderId}/bank-details/{userId}")
     public ResponseEntity<String> submitBankDetails(
             @PathVariable Long orderId,
             @PathVariable UUID userId,
-            @RequestBody RefundBankDetailsDto dto) {
+            @RequestBody(required = false) RefundBankDetailsDto dto) {
 
         refundService.submitRefundBankDetails(orderId, userId, dto);
-        return ResponseEntity.ok("Refund initiated successfully");
+        return ResponseEntity.ok("Refund processing updated");
     }
 
-    //Get refund status
+    // USER / ADMIN → Get refund status
     @GetMapping("/{orderId}")
     public ResponseEntity<Refund> getRefund(@PathVariable Long orderId) {
         return ResponseEntity.ok(refundService.getRefundByOrderId(orderId));

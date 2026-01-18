@@ -1,23 +1,15 @@
 package com.java.ecom.service.Implementation;
 
 import com.java.ecom.dto.request.CheckoutRequestDto;
-import com.java.ecom.dto.request.PaymentRequestDto;
-import com.java.ecom.dto.request.RefundBankDetailsDto;
-import com.java.ecom.dto.request.ReturnRequestDto;
 import com.java.ecom.dto.response.OrderItemResponseDto;
 import com.java.ecom.dto.response.OrderResponseDto;
 import com.java.ecom.entity.*;
 import com.java.ecom.enums.OrderStatus;
 import com.java.ecom.enums.PaymentMode;
-import com.java.ecom.enums.RefundStatus;
-import com.java.ecom.enums.ReturnStatus;
 import com.java.ecom.exception.BadRequestException;
 import com.java.ecom.exception.NotFoundException;
-import com.java.ecom.pattern.paymentStrategy.PaymentStrategy;
-import com.java.ecom.pattern.paymentStrategy.PaymentStrategyFactory;
 import com.java.ecom.pattern.refundStrategy.RefundStrategy;
 import com.java.ecom.pattern.refundStrategy.RefundStrategyFactory;
-import com.java.ecom.pattern.returnStrategy.ReturnStrategy;
 import com.java.ecom.pattern.returnStrategy.ReturnStrategyFactory;
 import com.java.ecom.repository.*;
 import com.java.ecom.service.OrderService;
@@ -39,12 +31,8 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepo productRepo;
     private final UserRepo userRepo;
     private final AddressRepo addressRepo;
-    private final PaymentStrategyFactory paymentStrategyFactory;
     private final PaymentRepo paymentRepo;
     private final RefundStrategyFactory refundStrategyFactory;
-    private final ReturnRepo returnRepo;
-    private final ReturnStrategyFactory returnStrategyFactory;
-    private final RefundRepo refundRepo;
 
     @Override
     @Transactional
@@ -129,7 +117,6 @@ public class OrderServiceImpl implements OrderService {
 
         OrderStatus current = order.getStatus();
 
-        // STATUS TRANSITION VALIDATION
         switch (newStatus) {
 
             case CONFIRMED -> {
@@ -150,16 +137,14 @@ public class OrderServiceImpl implements OrderService {
             }
 
             case DELIVERED -> {
-                if (order.getPaymentMode() == PaymentMode.ONLINE &&
-                        current != OrderStatus.SHIPPED) {
-                    throw new BadRequestException("Invalid delivery state");
-                }
-                if (order.getPaymentMode() == PaymentMode.CASH_ON_DELIVERY &&
-                        current != OrderStatus.SHIPPED) {
+                if (current != OrderStatus.SHIPPED) {
                     throw new BadRequestException("Order must be shipped first");
                 }
 
-                // COD → mark PAID at delivery
+                //SET DELIVERY TIME
+                order.setDeliveredAt(LocalDateTime.now());
+
+                //COD → mark PAID at delivery
                 if (order.getPaymentMode() == PaymentMode.CASH_ON_DELIVERY) {
                     order.setStatus(OrderStatus.PAID);
                 }
@@ -168,7 +153,13 @@ public class OrderServiceImpl implements OrderService {
             default -> throw new BadRequestException("Unsupported status transition");
         }
 
-        order.setStatus(newStatus);
+        //avoid overriding PAID for COD
+        if (!(order.getPaymentMode() == PaymentMode.CASH_ON_DELIVERY
+                && newStatus == OrderStatus.DELIVERED)) {
+
+            order.setStatus(newStatus);
+        }
+
         orderRepo.save(order);
     }
 

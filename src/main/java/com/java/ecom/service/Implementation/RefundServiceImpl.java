@@ -3,6 +3,7 @@ package com.java.ecom.service.Implementation;
 import com.java.ecom.dto.request.RefundBankDetailsDto;
 import com.java.ecom.entity.Order;
 import com.java.ecom.entity.Refund;
+import com.java.ecom.enums.PaymentMode;
 import com.java.ecom.enums.RefundStatus;
 import com.java.ecom.exception.BadRequestException;
 import com.java.ecom.exception.NotFoundException;
@@ -38,8 +39,20 @@ public class RefundServiceImpl implements RefundService {
             throw new BadRequestException("Unauthorized");
         }
 
+        // ONLINE → No bank details needed
+        if (refund.getPaymentMode() == PaymentMode.ONLINE) {
+            throw new BadRequestException(
+                    "Refund is automatic for online payments. Bank details not required."
+            );
+        }
+
+        // COD → Bank details mandatory
+        if (dto == null) {
+            throw new BadRequestException("Bank details required for COD refund");
+        }
+
         if (refund.getRefundStatus() != RefundStatus.BANK_DETAILS_REQUIRED) {
-            throw new BadRequestException("Bank details not required");
+            throw new BadRequestException("Bank details not required at this stage");
         }
 
         refund.setUpiId(dto.getUpiId());
