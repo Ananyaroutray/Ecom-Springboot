@@ -13,7 +13,6 @@ import com.java.ecom.service.RefundService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -39,14 +38,12 @@ public class RefundServiceImpl implements RefundService {
             throw new BadRequestException("Unauthorized");
         }
 
-        // ONLINE → No bank details needed
+        //ONLINE → Nothing to do, refund already automatic
         if (refund.getPaymentMode() == PaymentMode.ONLINE) {
-            throw new BadRequestException(
-                    "Refund is automatic for online payments. Bank details not required."
-            );
+            return;
         }
 
-        // COD → Bank details mandatory
+        //COD → Bank details required
         if (dto == null) {
             throw new BadRequestException("Bank details required for COD refund");
         }
