@@ -9,6 +9,7 @@ import com.java.ecom.mapper.UserMapper;
 import com.java.ecom.repository.UserRepo;
 import com.java.ecom.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepo userRepo;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public List<UserResponseDto> getAllUsers() {
@@ -37,6 +39,7 @@ public class UserServiceImpl implements UserService {
 
         User newUser = userMapper.toEntity(dto);
         newUser.setRole("USER");
+        newUser.setPassWord(passwordEncoder.encode(dto.getPassWord()));
 
         User savedUser = userRepo.save(newUser);
         return userMapper.toResponseDto(savedUser);
